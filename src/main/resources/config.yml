@@ -1,0 +1,61 @@
+cooldown: 10 # это кд на отправку сообщения в чат, оно может быть равно как 0, так и большему числу.
+local_chat_radius: 50
+
+gui:
+  name_gui: меню чатов # это имя самой gui.
+  slots_aggregate: # слоты с заполнителями, их может вовсе не быть.
+    slot: # слоты от и до какого должны быть заполнены материалом указанным ниже.
+      - 1
+      - 0
+      - 5
+    material: barrier
+    aggregate_name: тут ничего нет! # имя заполнителя
+    aggregate_lore:
+      - пизда
+    item_custom_model_data: 357664
+
+  muted_item_material: barrier
+  muted_item_custom_model_data: 123547
+
+  muted_player_list_material: barrier
+  muted_player_list_custom_model_data: 984567
+  muted_player_list_name: "додики"
+  muted_player_list_slot: 53
+
+chats:
+  chat1:
+    slot: 10
+    type: global # есть 3 типа чата. Глобальный - распространяется на все миры, локальный, действует в пределах локального чата, чат локации - это чат конкретной локации, тоесть мира.
+    prefix: '&b|&fG&b|&f' # Префикс - это то что будет писаться в перед сообщением в определённый чат, пример: |G| raspitab: привет!
+    tag_name: global
+    rules: # страницы для книги, разделения строк делать символами \n
+      '1':
+        - Не матюкаца
+        - Мамку не трогать
+        - Сексом не долбиться
+      '2':
+        - Смакать яйки админу
+        - Сосать хуй админу
+        - Все правила обязательны
+    item_material: barrier
+    item_name: '&fGLOBAL'
+    item_custom_model_data: 124325
+    logs_file_name: global_logs.txt
+  chat2:
+    slot: 15
+    type: local # есть 3 типа чата. Глобальный - распространяется на все миры, локальный, действует в пределах локального чата, чат локации - это чат конкретной локации, тоесть мира.
+    prefix: '&b|&fG&b|&f' # Префикс - это то что будет писаться в перед сообщением в определённый чат, пример: |G| raspitab: привет!
+    tag_name: zighail
+    rules: # страницы для книги, разделения строк делать символами \n
+      '1':
+        - Не матюкаца
+        - Мамку не трогать
+        - Сексом не долбиться
+      '2':
+        - Смакать яйки админу
+        - Сосать хуй админу
+        - Все правила обязательны
+    item_material: barrier
+    item_name: 'sgghfhjsd'
+    item_custom_model_data: 234453
+    logs_file_name: zighail_logs.txt

@@ -1,0 +1,10 @@
+name: DarkAgeChatSystem
+version: '${project.version}'
+main: ru.mrhide.pluginza1k.DarkAgeChatSystem
+api-version: '1.20'
+commands:
+  chat:
+permissions:
+  command.admin.mute:
+    default: op
+
