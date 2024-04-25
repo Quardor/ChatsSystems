@@ -49,7 +49,7 @@ public class Config {
         if(bukkitConfig.getString("gui.muted_player_list_material") != null) {
             guiMutePlayersList = new ItemStack(Material.valueOf(bukkitConfig.getString("gui.muted_player_list_material").toUpperCase()));
             ItemMeta meta = guiMutePlayersList.getItemMeta();
-            meta.setDisplayName(bukkitConfig.getString("gui.muted_player_list_name"));
+            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', bukkitConfig.getString("gui.muted_player_list_name")));
             meta.setCustomModelData(bukkitConfig.getInt("gui.muted_player_list_custom_model_data"));
             guiMutePlayersList.setItemMeta(meta);
         }
@@ -61,8 +61,10 @@ public class Config {
 
         itemStack = new ItemStack(Material.valueOf(bukkitConfig.getString("gui.slots_aggregate.material").toUpperCase()));
         ItemMeta meta = itemStack.getItemMeta();
-        meta.setDisplayName(bukkitConfig.getString("gui.slots_aggregate.aggregate_name"));
-        meta.setLore(bukkitConfig.getStringList("gui.slots_aggregate.aggregate_lore"));
+        meta.setDisplayName(ChatColor.translateAlternateColorCodes('&',bukkitConfig.getString("gui.slots_aggregate.aggregate_name")));
+        List<String> lore = bukkitConfig.getStringList("gui.slots_aggregate.aggregate_lore");
+        lore.replaceAll(textToTranslate -> ChatColor.translateAlternateColorCodes('&', textToTranslate));
+        meta.setLore(lore);
         meta.setCustomModelData(bukkitConfig.getInt("gui.slots_aggregate.item_custom_model_data"));
         itemStack.setItemMeta(meta);
 
@@ -73,34 +75,57 @@ public class Config {
         List<List<String>> rulesList = new ArrayList<>();
         ConfigurationSection chatSection = config.getConfigurationSection("chats."+key);
         ConfigurationSection chatRules = config.getConfigurationSection("chats."+key+".rules");
-        if(chatSection == null) return;
+
+        if(chatSection == null) {
+            return;
+        }
+
         String itemMaterial = chatSection.getString("item_material");
+
         String itemName = chatSection.getString("item_name");
+
         if (itemMaterial != null) {
             guiItemStack = new ItemStack(Material.valueOf(itemMaterial.toUpperCase()));
         }
+
         ItemMeta meta1 = guiItemStack.getItemMeta();
-        if(itemName != null) meta1.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
+        if(itemName != null) {
+            meta1.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
+        }
+
         meta1.setCustomModelData(chatSection.getInt("item_custom_model_data"));
+
         guiItemStack.setItemMeta(meta1);
         String logsFileName = chatSection.getString("logs_file_name");
+
         String chatTag = chatSection.getString("tag_name");
+
         String chatPrefix = chatSection.getString("prefix");
+
         String chatType = chatSection.getString("type");
+
+        String onEnableMessage = chatSection.getString("on_enable_message");
+
+        String onDisableMessage = chatSection.getString("on_disable_message");
+
+        String chatAlreadyContainsPlayerMessage = chatSection.getString("chat_already_contains_player_message");
+
         if(chatRules != null) {
             chatRules.getKeys(true).forEach(list -> {
-                List<String> chatRule = config.getStringList("chats." + key + ".rules." + list);
-                if (chatRule != null) {
-                    rulesList.add(chatRule);
-                }
+                List<String> chatRule = chatRules.getStringList(list);
+                rulesList.add(chatRule);
             });
         }
+
         int itemSlot = chatSection.getInt("slot");
 
-        Chat chat = new Chat(chatPrefix, chatType, itemSlot, rulesList, new ArrayList<>(), new HashMap<>(), guiItemStack, null);
+        Chat chat = new Chat(chatPrefix, chatType, itemSlot, rulesList, new ArrayList<>(), new HashMap<>(), guiItemStack, null, onEnableMessage, onDisableMessage, chatAlreadyContainsPlayerMessage);
 
         try {
-            if(logsFileName == null) return;
+            if(logsFileName == null) {
+                return;
+            }
+
             BufferedWriter writer = new BufferedWriter(new FileWriter( DarkAgeChatSystem.getInstance().getDataFolder() + File.separator + logsFileName, true));
             chat.setWriter(writer);
         } catch (IOException e) {

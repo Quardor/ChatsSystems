@@ -34,6 +34,6 @@ public class MutedPlayersArguments implements ArgumentType {
 
     @Override
     public List<String> tabulation(CommandSender commandSender, String[] args, String s) {
-        return DarkAgeChatSystem.getMuteChatPlayers().getAllChatMutes(args[1]);
+        return DarkAgeChatSystem.getMuteChatPlayers().getMutedByPlayer(commandSender.getName());
     }
 }

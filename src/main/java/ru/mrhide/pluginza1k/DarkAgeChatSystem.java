@@ -9,7 +9,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.mrhide.pluginza1k.chats.Chat;
 import ru.mrhide.pluginza1k.data.ChatHashmap;
 import ru.mrhide.pluginza1k.data.Config;
 import ru.mrhide.pluginza1k.data.Cooldown;
@@ -38,7 +37,7 @@ public final class DarkAgeChatSystem extends JavaPlugin {
     @Getter
     private static ChatHashmap chatsHashMap;
     @Getter
-    private static HashMap<Player, List<Player>> mutedByPlayer;
+    private static HashMap<String, List<Inventory>> playerMutesInventories;
     @Getter
     private static Cooldown cooldown;
     @Getter
@@ -50,7 +49,7 @@ public final class DarkAgeChatSystem extends JavaPlugin {
     public void onEnable() {
         instance = this;
         chatsHashMap = new ChatHashmap();
-        mutedByPlayer = new HashMap<>();
+        playerMutesInventories = new HashMap<>();
         muteChatPlayers = new MuteChatPlayers();
 
         getServer().getPluginManager().registerEvents(new ChatEvents(), this);
@@ -76,15 +75,19 @@ public final class DarkAgeChatSystem extends JavaPlugin {
         ChatCommands.init();
 
         muteChatPlayers.loadMutes(mutedPlayersChats);
-
-        if(DarkAgeChatSystem.getMuteChatPlayers().getAllMutes() != null && !DarkAgeChatSystem.getMuteChatPlayers().getAllMutes().isEmpty() && mutedPlayersToItemStacks(DarkAgeChatSystem.getMuteChatPlayers().getAllMutes()) != null) {
-            mutesInventories = createInventories(mutedPlayersToItemStacks(DarkAgeChatSystem.getMuteChatPlayers().getAllMutes()));
-        }
     }
 
     @Override
     public void onDisable() {
         muteChatPlayers.saveMutes(mutedPlayersChats);
+    }
+
+    public static void loadActivePlayers() {
+        DarkAgeChatSystem.getChatsHashMap().keySet().forEach(chatTag ->{
+            DarkAgeChatSystem.getActivePlayers().getList("chats." + chatTag).forEach(playerName -> {
+                DarkAgeChatSystem.getChatsHashMap().get(chatTag).addActivePlayer(Bukkit.getPlayer((String) playerName));
+            });
+        });
     }
 
     public static void saveActivePlayers(){
@@ -142,26 +145,23 @@ public final class DarkAgeChatSystem extends JavaPlugin {
         return inventories;
     }
 
-    public static List<ItemStack> mutedPlayersToItemStacks(List<String> strings){
+    public static List<ItemStack> mutedPlayersToItemStacks(Player player){
         List<ItemStack> mutedIcons = new ArrayList<>();
-        DarkAgeChatSystem.getMuteChatPlayers().getAllMutes().forEach(playerName ->{
-            ItemStack itemStack = DarkAgeChatSystem.getConfiguration().getGuiMutePlayer();
-            Material material = itemStack.getType();
-            for (Chat chat : DarkAgeChatSystem.getMuteChatPlayers().getMutedChatByPlayer(playerName)) {
-                List<String> lore = new ArrayList<>();
-                ItemStack itemStack1 = new ItemStack(material);
-                ItemMeta meta = itemStack1.getItemMeta();
-                meta.setDisplayName(ChatColor.WHITE + playerName);
-                lore.add((ChatColor.WHITE + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat)));
-                lore.add((ChatColor.WHITE + DarkAgeChatSystem.getMuteChatPlayers().HowMuchIsLeft(chat, playerName)));
-                meta.setLore(lore);
-                PersistDataUtils utils = new PersistDataUtils(DarkAgeChatSystem.getInstance());
-                meta.setCustomModelData(13371337);
-                itemStack1.setItemMeta(meta);
-                utils.set("player", itemStack1, playerName);
-                utils.set("chatTag", itemStack1, DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat));
-                mutedIcons.add(itemStack1);
-            }
+
+        ItemStack itemStack = DarkAgeChatSystem.getConfiguration().getGuiMutePlayer();
+        Material material = itemStack.getType();
+        DarkAgeChatSystem.getMuteChatPlayers().get(player.getName()).keySet().forEach(targetName -> {
+            List<String> lore = new ArrayList<>();
+            ItemStack itemStack1 = new ItemStack(material);
+            ItemMeta meta = itemStack1.getItemMeta();
+            meta.setDisplayName(ChatColor.WHITE + targetName);
+            lore.add((ChatColor.WHITE + DarkAgeChatSystem.getMuteChatPlayers().HowMuchIsLeft(player.getName(), targetName)));
+            meta.setLore(lore);
+            PersistDataUtils utils = new PersistDataUtils(DarkAgeChatSystem.getInstance());
+            meta.setCustomModelData(13371337);
+            itemStack1.setItemMeta(meta);
+            utils.set("player", itemStack1, targetName);
+            mutedIcons.add(itemStack1);
         });
         return mutedIcons;
     }

@@ -25,18 +25,13 @@ import wf.utils.bukkit.command.subcommand.executor.types.bukkit.BukkitArgumentTy
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-
-import static ru.mrhide.pluginza1k.DarkAgeChatSystem.createInventories;
-import static ru.mrhide.pluginza1k.DarkAgeChatSystem.mutedPlayersToItemStacks;
 
 public class ChatCommands {
     public static void init() {
         CommandHandler commandHandler = new CommandHandlerBuilder()
                 .setPlugin(DarkAgeChatSystem.getInstance())
-                .setCommands("chat")
+                .setCommands("ch")
                 .build();
 
         commandHandler.addSubcommand(
@@ -95,7 +90,6 @@ public class ChatCommands {
                         .setCommand("adminmute")
                         .setPermission("command.admin.mute")
                         .setArguments(
-                                new Argument(new ChatsListArguments()),
                                 new Argument(ArgumentType.INTEGER),
                                 new Argument(new MuteTypeArguments()),
                                 new Argument(BukkitArgumentType.ONLINE_PLAYER)
@@ -110,8 +104,7 @@ public class ChatCommands {
                         .setCommand("adminunmute")
                         .setPermission("command.admin.mute")
                         .setArguments(
-                                new Argument(new ChatsListArguments()),
-                                new Argument(new MutedPlayersArguments())
+                                new Argument(BukkitArgumentType.ONLINE_PLAYER)
                         )
                         .setRunnable(ChatCommands::adminUnmute)
                         .build()
@@ -122,7 +115,9 @@ public class ChatCommands {
                         .setOnlyPlayer(true)
                         .setCommand("mute")
                         .setArguments(
-                                new Argument(BukkitArgumentType.ONLINE_PLAYER)
+                                new Argument(BukkitArgumentType.ONLINE_PLAYER),
+                                new Argument(ArgumentType.INTEGER),
+                                new Argument(new MuteTypeArguments())
                         )
                         .setRunnable(ChatCommands::mute)
                         .build()
@@ -132,25 +127,33 @@ public class ChatCommands {
                 new SubCommandBuilder()
                         .setOnlyPlayer(true)
                         .setCommand("unmute")
-                        .setArguments(new Argument(BukkitArgumentType.ONLINE_PLAYER))
+                        .setArguments(new Argument(new MutedPlayersArguments()))
                         .setRunnable(ChatCommands::unmute)
                         .build()
         );
     }
 
     private static void mute(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
-        if (DarkAgeChatSystem.getMutedByPlayer().containsKey((Player) commandSender)) {
-            DarkAgeChatSystem.getMutedByPlayer().get((Player) commandSender).add((Player) args[0]);
-        } else {
-            List<Player> playerList = new ArrayList<>();
-            playerList.add((Player) args[0]);
-            DarkAgeChatSystem.getMutedByPlayer().put((Player) commandSender, playerList);
-        }
+        MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
+        Player target = (Player) args[0];
+        int time = (int) args[1];
+        String type = (String) args[2];
+
+        long muteTime = 0;
+
+        if(type.equals("seconds")) muteTime = time*1000L;
+        if(type.equals("minutes")) muteTime = time*60L*1000L;
+        if(type.equals("hours")) muteTime = time*3600L*1000L;
+        if(type.equals("days")) muteTime = time*86400L*1000L;
+
+        mute.setMuteForPlayerByPlayer(target.getName(), commandSender.getName(), muteTime);
     }
 
     private static void unmute(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
-        if (DarkAgeChatSystem.getMutedByPlayer().containsKey((Player) commandSender)) {
-            DarkAgeChatSystem.getMutedByPlayer().get((Player) commandSender).remove((Player) args[0]);
+        MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
+        String playerName = (String) args[0];
+        if (mute.isMuted(commandSender.getName(), playerName)) {
+            mute.unmute(commandSender.getName(), playerName);
         }
     }
 
@@ -161,16 +164,6 @@ public class ChatCommands {
             return;
         }
         Chat chat = (Chat) args[0];
-
-        MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
-
-        if(mute != null) {
-            if (mute.isMuted(chat, (Player) commandSender)) {
-                commandSender.sendMessage("Вы замьючены в данном чате! До окончания мьюта осталось: " + mute.HowMuchIsLeft(chat, commandSender.getName()));
-                return;
-            }
-        }
-
 
         StringBuilder message = new StringBuilder();
         message.append(ChatColor.translateAlternateColorCodes('&', chat.getPrefix())).append(" ").append(commandSender.getName()).append(": ");
@@ -199,12 +192,18 @@ public class ChatCommands {
 
     private static void playerJoinChat(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
         Chat chat = (Chat) args[0];
+        if(chat.getActivePlayers().contains((Player) commandSender)) {
+            commandSender.sendMessage(chat.getChatAlreadyContainsPlayerMessage());
+            return;
+        }
         chat.addActivePlayer((Player) commandSender);
+        commandSender.sendMessage(ChatColor.translateAlternateColorCodes('&',chat.getOnEnableMessage()));
     }
 
     private static void playerLeaveChat(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
         Chat chat = (Chat) args[0];
         chat.removeActivePlayer((Player) commandSender);
+        commandSender.sendMessage(ChatColor.translateAlternateColorCodes('&',chat.getOnDisableMessage()));
     }
 
     private static void openChatRules(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
@@ -214,14 +213,14 @@ public class ChatCommands {
             chat.printChatRulesPage((Player) commandSender, (Integer) args[1]);
 
                 TextComponent message = new TextComponent(ChatColor.GREEN + "Следующая страница:");
-                message.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/chat rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) + " " + (pageNumber + 1)));
+                message.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ch rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) + " " + (pageNumber + 1)));
 
                 TextComponent message1 = new TextComponent(ChatColor.RED + "Предыдущая страница:");
-                message1.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/chat rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) + " " + (pageNumber - 1)));
-            if (pageNumber >= 1 && pageNumber <= chat.getRules().size()) {
+                message1.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ch rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) + " " + (pageNumber - 1)));
+            if (pageNumber < chat.getRules().size()) {
                 commandSender.sendMessage(message);
             }
-            if (pageNumber > 1) {
+            if (pageNumber > 1 ) {
                 commandSender.sendMessage(message1);
             }
 
@@ -230,26 +229,18 @@ public class ChatCommands {
     private static void openChatGui(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args){
         Player player = (Player) commandSender;
 
-        DarkAgeChatSystem.mutesInventories = createInventories(mutedPlayersToItemStacks(DarkAgeChatSystem.getMuteChatPlayers().getAllMutes()));
-
         Inventory inventory = DarkAgeChatSystem.getConfiguration().getGui().getGui();
         player.openInventory(inventory);
     }
 
     private static void adminMute(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args){
-        Chat chat = (Chat) args[0];
         int time = (int) args[1];
         String type = (String) args[2];
         Player target = (Player) args[3];
         if(type == null) return;
-        if(chat == null) return;
         MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
         if (!commandSender.isOp()){
             commandSender.sendMessage("Данная команда предназначена для администраторов!");
-            return;
-        }
-        if(mute.isMuted(chat,target)){
-            commandSender.sendMessage("Данный игрок уже замьючен!");
             return;
         }
         long muteTime = 0;
@@ -257,12 +248,11 @@ public class ChatCommands {
         if(type.equals("minutes")) muteTime = time*60L*1000L;
         if(type.equals("hours")) muteTime = time*3600L*1000L;
         if(type.equals("days")) muteTime = time*86400L*1000L;
-        mute.setMutedChatPlayers(chat, target.getName(), muteTime);
+        mute.setMuteForAll(target.getName(), muteTime);
     }
     private static void adminUnmute(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
-        Chat chat = (Chat) args[0];
+        MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
         String targetName = (String) args[1];
-
-        DarkAgeChatSystem.getMuteChatPlayers().unmute(chat, targetName);
+        mute.unmuteAll(targetName);
     }
 }

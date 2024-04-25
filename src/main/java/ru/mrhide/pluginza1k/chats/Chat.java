@@ -3,10 +3,12 @@ package ru.mrhide.pluginza1k.chats;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import ru.mrhide.pluginza1k.DarkAgeChatSystem;
+import ru.mrhide.pluginza1k.data.MuteChatPlayers;
 
 import java.io.BufferedWriter;
 import java.util.ArrayList;
@@ -27,23 +29,16 @@ public class Chat {
     private ItemStack item;
     @Setter
     private BufferedWriter writer;
+    private String onEnableMessage;
+    private String onDisableMessage;
+    private String chatAlreadyContainsPlayerMessage;
 
     public void addAll(List<Player> players){
         activePlayers.addAll(players);
     }
 
-    public void unmuteAll(){
-        mutedPlayers.clear();
-    }
-    public void unmute(String player){
-        mutedPlayers.remove(player);
-    }
-
     public void addActivePlayer(Player player){
-        if(activePlayers.contains(player)){
-            player.sendMessage("Вы уже активировали этот чат!");
-            return;
-        }
+        if(activePlayers.contains(player))return;
         activePlayers.add(player);
         saveActivePlayers();
     }
@@ -65,19 +60,19 @@ public class Chat {
     }
 
     public void sendChatMessage(Player sender, String message){
-        HashMap<Player, List<Player>> mutedByPlayer = DarkAgeChatSystem.getMutedByPlayer();
+        MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
         switch (type) {
             case "global":
                 activePlayers.forEach(player -> {
                     if (player!=null && player.isOnline()) {
-                        if(mutedByPlayer.containsKey(player) && mutedByPlayer.get(player).contains(sender)) return;
+                        if (mute.isMuted(player.getName(), sender.getName())) return;
                         player.sendMessage(String.valueOf(message));
                     }
                 });
                 break;
             case "local":
                 for (Player target : sender.getLocation().getNearbyPlayers(DarkAgeChatSystem.getConfiguration().getLocalChatRadius())) {
-                    if(mutedByPlayer.containsKey(target) && mutedByPlayer.get(target).contains(sender)) return;
+                    if (mute.isMuted(target.getName(), sender.getName())) return;
                     target.sendMessage(String.valueOf(message));
                 }
                 break;
@@ -85,7 +80,7 @@ public class Chat {
                 World world = sender.getWorld();
                 activePlayers.forEach(player -> {
                     if (player!=null && player.isOnline() && player.getWorld() == world) {
-                        if(mutedByPlayer.containsKey(player) && mutedByPlayer.get(player).contains(sender)) return;
+                        if (mute.isMuted(player.getName(), sender.getName())) return;
                         player.sendMessage(String.valueOf(message));
                     }
                 });
@@ -94,6 +89,8 @@ public class Chat {
     }
 
     public void printChatRulesPage(Player player, int pageNumber){
-        rules.get(pageNumber-1).forEach(player::sendMessage);
+        rules.get(pageNumber-1).forEach(msg ->{
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
+        });
     }
 }

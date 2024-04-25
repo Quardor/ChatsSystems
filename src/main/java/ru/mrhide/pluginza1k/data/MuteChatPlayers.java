@@ -2,83 +2,90 @@ package ru.mrhide.pluginza1k.data;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 import ru.mrhide.pluginza1k.DarkAgeChatSystem;
-import ru.mrhide.pluginza1k.chats.Chat;
 import wf.utils.bukkit.config.BukkitConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class MuteChatPlayers extends HashMap<Chat, HashMap<String, Long>> {
+public class MuteChatPlayers extends HashMap<String, HashMap<String, Long>> {
 
-    public void setMutedChatPlayers(Chat chat, String player, Long muteTime){
-        chat.getMutedPlayers().put(player, System.currentTimeMillis() + muteTime);
-        put(chat, chat.getMutedPlayers());
+    public void setMuteForPlayerByPlayer(String playerTarget, String player, Long muteTime){
+        if(get(player) == null){
+            put(player, new HashMap<>());
+            get(player).put(playerTarget, muteTime + System.currentTimeMillis());
+            saveMutes(DarkAgeChatSystem.getMutedPlayersChats());
+            return;
+        }
+        if(get(player).containsKey(playerTarget)){
+            get(player).remove(playerTarget);
+            get(player).put(playerTarget, muteTime + System.currentTimeMillis());
+            saveMutes(DarkAgeChatSystem.getMutedPlayersChats());
+            return;
+        }
+        get(player).put(playerTarget, muteTime + System.currentTimeMillis());
+        saveMutes(DarkAgeChatSystem.getMutedPlayersChats());
     }
 
-    public boolean isMuted(Chat chat, Player player){
-        if(containsKey(chat) && chat.getMutedPlayers().containsKey(player.getName())){
-            return System.currentTimeMillis()<get(chat).get(player.getName());
+    public void setMuteForAll(String playerTarget, Long muteTime){
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            setMuteForPlayerByPlayer(playerTarget, player.getName(), muteTime);
+        });
+    }
+
+    public boolean isMuted(String player, String target){
+        if(containsKey(player) && get(player).containsKey(target)){
+            return System.currentTimeMillis()<get(player).get(target);
         }
-        unmute(chat, player.getName());
+        unmute(player, target);
         return false;
     }
 
-    public List<String> getAllChatMutes(String chatTag){
-        Chat chat = DarkAgeChatSystem.getChatsHashMap().get(chatTag);
-        if(chat == null) return null;
-        List<String> mutedPlayers = new ArrayList<>();
+    public List<String> getMutedByPlayer(String senderName){
+        if(get(senderName) == null){
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(get(senderName).keySet());
+    }
+
+    public void unmute(String sender, String target) {
+        if (get(sender) == null || !containsKey(sender)) return;
+        if (!get(sender).containsKey(target)) return;
+        get(sender).remove(target);
+        saveMutes(DarkAgeChatSystem.getMutedPlayersChats());
+    }
+
+    public void unmuteAll(String target){
         Bukkit.getOnlinePlayers().forEach(player -> {
-            if(isMuted(chat, player)) mutedPlayers.add(player.getName());
+           unmute(player.getName(), target);
         });
-        return mutedPlayers;
     }
 
-    public List<String> getAllMutes(){
-        List<String> playerNames = new ArrayList<>();
-        values().forEach(chat -> {
-            chat.keySet().forEach(player ->{
-                if(!playerNames.contains(player)){
-                    playerNames.add(player);
-                }
-            });
-        });
-        return playerNames;
-    }
-
-    public void unmute(Chat chat, String player){
-        if (!keySet().contains(chat)) return;
-        if (get(chat) == null) return;
-        get(chat).remove(player);
-        chat.unmute(player);
-    }
-
-    public List<Chat> getMutedChatByPlayer(String playerName){
-        List<Chat> mutedChats = new ArrayList<>();
-        for (Chat chat : keySet()) {
-            for (String string : get(chat).keySet()) {
-                if (string.equals(playerName)) mutedChats.add(chat);
+    public List<String> getWhoMutePlayer(String targetName){
+        List<String> whoMuteTarget = new ArrayList<>();
+        for (String s : keySet()) {
+            for (String string : get(s).keySet()) {
+                if (string.equals(targetName)) whoMuteTarget.add(s);
             }
         }
-        return mutedChats;
+        return whoMuteTarget;
     }
 
-    public String HowMuchIsLeft(Chat chat, String playerName){
-        long millis = get(chat).get(playerName) - System.currentTimeMillis();
+    public String HowMuchIsLeft(String playerName, String targetName){
+        long millis = get(playerName).get(targetName) - System.currentTimeMillis();
         return DarkAgeChatSystem.convertMillis(millis);
     }
 
     public void loadMutes(BukkitConfig config){
-        if (config.getConfigurationSection("chats") == null) return;
-        config.getConfigurationSection("chats").getKeys(true).forEach(chatTag -> {
-            if (config.getConfigurationSection("chats." + chatTag) == null) return;
-            config.getConfigurationSection("chats." + chatTag).getKeys(true).forEach(playerNames -> {
-                if (DarkAgeChatSystem.getChatsHashMap().get(chatTag) == null) return;
-                DarkAgeChatSystem.getChatsHashMap().get(chatTag).getMutedPlayers().put(playerNames, config.getLong("chats." + chatTag + "." + playerNames) + System.currentTimeMillis());
+        if (config.getConfigurationSection("players") == null) return;
+        config.getConfigurationSection("players").getKeys(true).forEach(playerName -> {
+            if (config.getConfigurationSection("players." + playerName) == null) return;
+            config.getConfigurationSection("players." + playerName).getKeys(true).forEach(playerNames -> {
+                if (DarkAgeChatSystem.getChatsHashMap().get(playerName) == null) return;
+                DarkAgeChatSystem.getChatsHashMap().get(playerName).getMutedPlayers().put(playerNames, config.getLong("players." + playerName + "." + playerNames) + System.currentTimeMillis());
 
-                put(DarkAgeChatSystem.getChatsHashMap().get(chatTag), DarkAgeChatSystem.getChatsHashMap().get(chatTag).getMutedPlayers());
+                put(playerName, DarkAgeChatSystem.getChatsHashMap().get(playerName).getMutedPlayers());
 
             });
         });
@@ -86,27 +93,19 @@ public class MuteChatPlayers extends HashMap<Chat, HashMap<String, Long>> {
 
     public void saveMutes(BukkitConfig config){
         if(isEmpty()) return;
-        config.remove("chats");
-        keySet().forEach(chat -> {
-            if(chat == null) return;
-
-            if (DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) == null) return;
-            String chatTag = DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat);
-            ConfigurationSection parentSection = config.getConfigurationSection("chats." + chatTag);
+        config.remove("players");
+        keySet().forEach(playerName -> {
+            ConfigurationSection parentSection = config.getConfigurationSection("players." + playerName);
             if (parentSection == null) {
-                parentSection = config.createSection("chats." + chatTag);
+                parentSection = config.createSection("players." + playerName);
             }
-            if(DarkAgeChatSystem.getChatsHashMap().get(chatTag) == null) return;
             ConfigurationSection finalParentSection = parentSection;
-            DarkAgeChatSystem.getChatsHashMap().get(chatTag).getMutedPlayers().keySet().forEach(player -> {
-
-                Bukkit.getLogger().info(player);
-
+            get(playerName).keySet().forEach(player -> {
                 ConfigurationSection playerSection = finalParentSection.getConfigurationSection(player);
                 if(playerSection == null) {
                     finalParentSection.createSection(player);
                 }
-                finalParentSection.set(player, DarkAgeChatSystem.getChatsHashMap().get(chatTag).getMutedPlayers().get(player) - System.currentTimeMillis());
+                finalParentSection.set(player, Math.abs(get(playerName).get(player) - System.currentTimeMillis()));
             });
         });
         config.save();
