@@ -23,8 +23,4 @@ public class Cooldown{
         }
         return false;
     }
-
-    public void remove(Player player){
-        cooldowns.remove(player);
-    }
 }

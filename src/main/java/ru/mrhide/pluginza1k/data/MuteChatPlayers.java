@@ -62,16 +62,6 @@ public class MuteChatPlayers extends HashMap<String, HashMap<String, Long>> {
         });
     }
 
-    public List<String> getWhoMutePlayer(String targetName){
-        List<String> whoMuteTarget = new ArrayList<>();
-        for (String s : keySet()) {
-            for (String string : get(s).keySet()) {
-                if (string.equals(targetName)) whoMuteTarget.add(s);
-            }
-        }
-        return whoMuteTarget;
-    }
-
     public String HowMuchIsLeft(String playerName, String targetName){
         long millis = get(playerName).get(targetName) - System.currentTimeMillis();
         return DarkAgeChatSystem.convertMillis(millis);

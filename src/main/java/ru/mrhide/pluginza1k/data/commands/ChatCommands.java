@@ -226,6 +226,7 @@ public class ChatCommands {
 
         } else commandSender.sendMessage("Такой страницы не существует!");
     }
+
     private static void openChatGui(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args){
         Player player = (Player) commandSender;
 
@@ -250,6 +251,7 @@ public class ChatCommands {
         if(type.equals("days")) muteTime = time*86400L*1000L;
         mute.setMuteForAll(target.getName(), muteTime);
     }
+
     private static void adminUnmute(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
         MuteChatPlayers mute = DarkAgeChatSystem.getMuteChatPlayers();
         String targetName = (String) args[1];

@@ -26,16 +26,6 @@ public class ChatHashmap extends HashMap<String, Chat> {
         return players;
     }
 
-    public List<Chat> getPlayerChats(Player player){
-        List<Chat> playerChats = new ArrayList<>();
-        values().forEach(chat ->{
-            if(chat.getActivePlayers().contains(player)){
-                playerChats.add(chat);
-            }
-        });
-        return playerChats;
-    }
-
     public List<String> getPlayerChatsString(Player player){
         List<String> playerChats = new ArrayList<>();
         keySet().forEach(chat ->{
