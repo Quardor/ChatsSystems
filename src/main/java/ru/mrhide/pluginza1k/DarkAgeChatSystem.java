@@ -56,6 +56,7 @@ public final class DarkAgeChatSystem extends JavaPlugin {
 
         bukkitConfig = new BukkitConfigBuilder()
                 .setPlugin(this)
+                .setAutoSave(false)
                 .setConfigName("config")
                 .build();
         configuration = new Config(bukkitConfig);
@@ -64,11 +65,13 @@ public final class DarkAgeChatSystem extends JavaPlugin {
 
         activePlayers = new BukkitConfigBuilder()
                 .setPlugin(this)
+                .setAutoSave(false)
                 .setConfigName("activeplayers")
                 .build();
 
         mutedPlayersChats = new BukkitConfigBuilder()
                 .setPlugin(this)
+                .setAutoSave(false)
                 .setConfigName("muted_players")
                 .build();
 
@@ -80,6 +83,7 @@ public final class DarkAgeChatSystem extends JavaPlugin {
     @Override
     public void onDisable() {
         muteChatPlayers.saveMutes(mutedPlayersChats);
+        saveActivePlayers();
     }
 
     public static void loadActivePlayers() {
@@ -91,8 +95,9 @@ public final class DarkAgeChatSystem extends JavaPlugin {
     }
 
     public static void saveActivePlayers(){
-        DarkAgeChatSystem.getChatsHashMap().keySet().forEach(chatTag ->{
-            DarkAgeChatSystem.getActivePlayers().set("chats." + chatTag, DarkAgeChatSystem.getChatsHashMap().get(chatTag).playersListToString());
+        DarkAgeChatSystem.getChatsHashMap().values().forEach(chat ->{
+            DarkAgeChatSystem.getActivePlayers().set("chats." + chat.getChatTag(), "");
+            DarkAgeChatSystem.getActivePlayers().set("chats." + chat.getChatTag(), chat.playersListToString());
         });
         DarkAgeChatSystem.getActivePlayers().save();
     }
@@ -110,6 +115,7 @@ public final class DarkAgeChatSystem extends JavaPlugin {
     }
 
     public static List<Inventory> createInventories(List<ItemStack> items) {
+        if(items == null) return null;
         if(items.isEmpty()) return null;
         List<Inventory> inventories = new ArrayList<>();
 
@@ -150,6 +156,7 @@ public final class DarkAgeChatSystem extends JavaPlugin {
 
         ItemStack itemStack = DarkAgeChatSystem.getConfiguration().getGuiMutePlayer();
         Material material = itemStack.getType();
+        if(DarkAgeChatSystem.getMuteChatPlayers().get(player.getName()) == null || DarkAgeChatSystem.getMuteChatPlayers().get(player.getName()).isEmpty()) return null;
         DarkAgeChatSystem.getMuteChatPlayers().get(player.getName()).keySet().forEach(targetName -> {
             List<String> lore = new ArrayList<>();
             ItemStack itemStack1 = new ItemStack(material);

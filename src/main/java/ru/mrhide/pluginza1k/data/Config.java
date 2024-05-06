@@ -82,20 +82,17 @@ public class Config {
 
         String itemMaterial = chatSection.getString("item_material");
 
+        if (itemMaterial == null) return;
+
         String itemName = chatSection.getString("item_name");
-
-        if (itemMaterial != null) {
-            guiItemStack = new ItemStack(Material.valueOf(itemMaterial.toUpperCase()));
-        }
-
-        ItemMeta meta1 = guiItemStack.getItemMeta();
-        if(itemName != null) {
-            meta1.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
-        }
-
+        ItemStack item = new ItemStack(Material.valueOf(itemMaterial.toUpperCase()));
+        ItemMeta meta1 = item.getItemMeta();
+        meta1.setDisplayName(ChatColor.translateAlternateColorCodes('&', itemName));
         meta1.setCustomModelData(chatSection.getInt("item_custom_model_data"));
 
-        guiItemStack.setItemMeta(meta1);
+        item.setItemMeta(meta1);
+
+
         String logsFileName = chatSection.getString("logs_file_name");
 
         String chatTag = chatSection.getString("tag_name");
@@ -119,7 +116,7 @@ public class Config {
 
         int itemSlot = chatSection.getInt("slot");
 
-        Chat chat = new Chat(chatPrefix, chatType, itemSlot, rulesList, new ArrayList<>(), new HashMap<>(), guiItemStack, null, onEnableMessage, onDisableMessage, chatAlreadyContainsPlayerMessage);
+        Chat chat = new Chat(chatPrefix, chatType, itemSlot, rulesList, new ArrayList<>(), new HashMap<>(), item, null, onEnableMessage, onDisableMessage, chatAlreadyContainsPlayerMessage, chatTag);
 
         try {
             if(logsFileName == null) {

@@ -32,6 +32,8 @@ public class Chat {
     private String onEnableMessage;
     private String onDisableMessage;
     private String chatAlreadyContainsPlayerMessage;
+    @Getter
+    private String chatTag;
 
     public void addAll(List<Player> players){
         activePlayers.addAll(players);
@@ -40,7 +42,6 @@ public class Chat {
     public void addActivePlayer(Player player){
         if(activePlayers.contains(player))return;
         activePlayers.add(player);
-        saveActivePlayers();
     }
 
     public void removeActivePlayer(Player player){

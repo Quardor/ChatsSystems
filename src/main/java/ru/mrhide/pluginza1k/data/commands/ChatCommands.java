@@ -32,6 +32,7 @@ public class ChatCommands {
         CommandHandler commandHandler = new CommandHandlerBuilder()
                 .setPlugin(DarkAgeChatSystem.getInstance())
                 .setCommands("ch")
+                .setAutoAddDefaultCommands(false)
                 .build();
 
         commandHandler.addSubcommand(
@@ -39,8 +40,8 @@ public class ChatCommands {
                         .setOnlyPlayer(true)
                         .setCommand("send")
                         .setArguments(
-                                new Argument(new PlayerActiveChatsArgument()),
-                                new Argument(ArgumentType.MULTI_STRING)
+                                new Argument("чат", new PlayerActiveChatsArgument()),
+                                new Argument("сообщение",ArgumentType.MULTI_STRING)
                         )
                         .setRunnable(ChatCommands::sendMessage)
                         .build()
@@ -50,7 +51,7 @@ public class ChatCommands {
                 new SubCommandBuilder()
                         .setOnlyPlayer(true)
                         .setCommand("on")
-                        .setArguments(new Argument(new ChatsListArguments()))
+                        .setArguments(new Argument("чат", new ChatsListArguments()))
                         .setRunnable(ChatCommands::playerJoinChat)
                         .build()
         );
@@ -59,7 +60,7 @@ public class ChatCommands {
                 new SubCommandBuilder()
                         .setOnlyPlayer(true)
                         .setCommand("off")
-                        .setArguments(new Argument(new PlayerActiveChatsArgument()))
+                        .setArguments(new Argument("чат", new PlayerActiveChatsArgument()))
                         .setRunnable(ChatCommands::playerLeaveChat)
                         .build()
         );
@@ -69,8 +70,8 @@ public class ChatCommands {
                         .setOnlyPlayer(true)
                         .setCommand("rules")
                         .setArguments(
-                                new Argument(new PlayerActiveChatsArgument()),
-                                new Argument(ArgumentType.INTEGER)
+                                new Argument("чат", new PlayerActiveChatsArgument()),
+                                new Argument("страница", ArgumentType.INTEGER)
                         )
                         .setRunnable(ChatCommands::openChatRules)
                         .build()
@@ -103,9 +104,7 @@ public class ChatCommands {
                         .setOnlyPlayer(true)
                         .setCommand("adminunmute")
                         .setPermission("command.admin.mute")
-                        .setArguments(
-                                new Argument(BukkitArgumentType.ONLINE_PLAYER)
-                        )
+                        .setArguments(new Argument("игрок", BukkitArgumentType.ONLINE_PLAYER))
                         .setRunnable(ChatCommands::adminUnmute)
                         .build()
         );
@@ -115,9 +114,9 @@ public class ChatCommands {
                         .setOnlyPlayer(true)
                         .setCommand("mute")
                         .setArguments(
-                                new Argument(BukkitArgumentType.ONLINE_PLAYER),
-                                new Argument(ArgumentType.INTEGER),
-                                new Argument(new MuteTypeArguments())
+                                new Argument("игрок", BukkitArgumentType.ONLINE_PLAYER),
+                                new Argument("число", ArgumentType.INTEGER),
+                                new Argument("единица времени", new MuteTypeArguments())
                         )
                         .setRunnable(ChatCommands::mute)
                         .build()
@@ -127,7 +126,7 @@ public class ChatCommands {
                 new SubCommandBuilder()
                         .setOnlyPlayer(true)
                         .setCommand("unmute")
-                        .setArguments(new Argument(new MutedPlayersArguments()))
+                        .setArguments(new Argument("игрок", new MutedPlayersArguments()))
                         .setRunnable(ChatCommands::unmute)
                         .build()
         );
@@ -193,7 +192,7 @@ public class ChatCommands {
     private static void playerJoinChat(CommandSender commandSender, ExecutionCommand executionCommand, Object[] args) {
         Chat chat = (Chat) args[0];
         if(chat.getActivePlayers().contains((Player) commandSender)) {
-            commandSender.sendMessage(chat.getChatAlreadyContainsPlayerMessage());
+            commandSender.sendMessage(ChatColor.translateAlternateColorCodes('&',chat.getChatAlreadyContainsPlayerMessage()));
             return;
         }
         chat.addActivePlayer((Player) commandSender);
@@ -213,10 +212,10 @@ public class ChatCommands {
             chat.printChatRulesPage((Player) commandSender, (Integer) args[1]);
 
                 TextComponent message = new TextComponent(ChatColor.GREEN + "Следующая страница:");
-                message.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ch rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) + " " + (pageNumber + 1)));
+                message.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ch rules " + chat.getChatTag() + " " + (pageNumber + 1)));
 
                 TextComponent message1 = new TextComponent(ChatColor.RED + "Предыдущая страница:");
-                message1.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ch rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(chat) + " " + (pageNumber - 1)));
+                message1.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ch rules " + chat.getChatTag() + " " + (pageNumber - 1)));
             if (pageNumber < chat.getRules().size()) {
                 commandSender.sendMessage(message);
             }

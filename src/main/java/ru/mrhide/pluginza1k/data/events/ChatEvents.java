@@ -1,5 +1,6 @@
 package ru.mrhide.pluginza1k.data.events;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -9,6 +10,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import ru.mrhide.pluginza1k.DarkAgeChatSystem;
+import ru.mrhide.pluginza1k.chats.Chat;
 import wf.utils.bukkit.data.PersistDataUtils;
 
 import java.util.HashMap;
@@ -17,12 +19,16 @@ import java.util.List;
 public class ChatEvents implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event){
-        DarkAgeChatSystem.getChatsHashMap().keySet().forEach(key -> {
-            if(DarkAgeChatSystem.getChatsHashMap().get(key).getActivePlayers().contains(event.getPlayer())) return;
-            DarkAgeChatSystem.getChatsHashMap().get(key).addActivePlayer(event.getPlayer());
-        });
-        DarkAgeChatSystem.loadActivePlayers();
-        DarkAgeChatSystem.getChatsHashMap().loadPlayers(DarkAgeChatSystem.getActivePlayers());
+        Player player = event.getPlayer();
+        BukkitRunnable runnable = new BukkitRunnable() {
+            @Override
+            public void run() {
+                DarkAgeChatSystem.getChatsHashMap().values().forEach(value -> {
+                    value.addActivePlayer(player);
+                });
+            }
+        };
+        runnable.runTaskAsynchronously(DarkAgeChatSystem.getInstance());
     }
 
     @EventHandler
@@ -34,13 +40,18 @@ public class ChatEvents implements Listener {
         if(event.getCurrentItem().getItemMeta().getCustomModelData() == DarkAgeChatSystem.getConfiguration().getGui().getNullItem().getItemMeta().getCustomModelData()){
             event.setCancelled(true);
         }
+        Bukkit.getLogger().info(event.getCurrentItem().getItemMeta().getCustomModelData() + " ");
         if (DarkAgeChatSystem.getChatsHashMap().getChatByGuiItem(event.getCurrentItem()) == null) return;
-        if (event.getCurrentItem().getItemMeta().getCustomModelData() == DarkAgeChatSystem.getChatsHashMap().getChatByGuiItem(event.getCurrentItem()).getItem().getItemMeta().getCustomModelData()) {
-            event.setCancelled(true);
-            player.closeInventory();
-            DarkAgeChatSystem.getChatsHashMap().getChatByGuiItem(event.getCurrentItem()).addActivePlayer(player);
-            player.performCommand("ch rules " + DarkAgeChatSystem.getChatsHashMap().getTagByChat(DarkAgeChatSystem.getChatsHashMap().getChatByGuiItem(event.getCurrentItem())) + " " + 1);
+        Chat chat = DarkAgeChatSystem.getChatsHashMap().getChatByGuiItem(event.getCurrentItem());
+        String chatTag = chat.getChatTag();
+        if(chat.getActivePlayers().contains(player)){
+            player.performCommand("ch off " + chatTag);
+        } else {
+            player.performCommand("ch on " + chatTag);
+            player.performCommand("ch rules " + chatTag + " " + 1);
         }
+        event.setCancelled(true);
+        player.closeInventory();
     }
 
     @EventHandler

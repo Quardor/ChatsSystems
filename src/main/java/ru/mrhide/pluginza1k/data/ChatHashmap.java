@@ -1,8 +1,9 @@
 package ru.mrhide.pluginza1k.data;
 
-import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import ru.mrhide.pluginza1k.DarkAgeChatSystem;
 import ru.mrhide.pluginza1k.chats.Chat;
 import wf.utils.bukkit.config.BukkitConfig;
 
@@ -11,20 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 
 public class ChatHashmap extends HashMap<String, Chat> {
-
-    public void loadPlayers(BukkitConfig config){
-        keySet().forEach(chatTag -> {
-            get(chatTag).addAll(stringsToPlayers(config.getStringList("chats." + chatTag)));
-        });
-    }
-
-    private List<Player> stringsToPlayers(List<String> nicknames){
-        List<Player> players = new ArrayList<>();
-        nicknames.forEach(nickname -> {
-            players.add(Bukkit.getPlayer(nickname));
-        });
-        return players;
-    }
 
     public List<String> getPlayerChatsString(Player player){
         List<String> playerChats = new ArrayList<>();
@@ -36,19 +23,15 @@ public class ChatHashmap extends HashMap<String, Chat> {
         return playerChats;
     }
 
-    public String getTagByChat(Chat chat){
-        for (String s : keySet()) {
-            if (get(s) == chat) return s;
-        }
-        return null;
-    }
+    public Chat getChatByGuiItem(ItemStack itemStack) {
+        Config configuration = DarkAgeChatSystem.getConfiguration();
 
-    public Chat getChatByGuiItem(ItemStack itemStack){
-        for (Chat value : values()) {
-            if(value.getItem().getItemMeta().getCustomModelData() == itemStack.getItemMeta().getCustomModelData()) return value;
-        }
-        return null;
-    }
+        BukkitConfig config = configuration.getConfig();
 
+        ConfigurationSection chats = config.getConfigurationSection("chats");
+
+        int cmd = itemStack.getItemMeta().getCustomModelData();
+        return get(chats.getString (chats.getKeys(true).stream().filter(chat -> chats.getInt(chat + ".item_custom_model_data") == cmd).findAny().orElse(null) + ".tag_name"));
+    }
 }
 
