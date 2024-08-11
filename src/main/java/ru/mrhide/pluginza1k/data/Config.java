@@ -32,7 +32,6 @@ public class Config {
 
     private long chatsCooldown;
 
-    @Getter
     private final Gui gui;
 
     public Config(BukkitConfig bukkitConfig) {
